@@ -2,6 +2,10 @@
 
 This project is a real-time collaborative text editor that allows multiple users to edit text simultaneously. The editor locks when a user focuses on it, preventing others from making changes until they unfocus or close the page. It also displays avatars for connected users and shows who is currently editing.
 
+## Project Demo
+
+![Project Demo](CollabTextEditor.gif)
+
 ## Features
 
 - Real-time collaborative editing
@@ -52,7 +56,7 @@ Open your web browser and navigate to http://localhost:3000 to access the collab
 
 ## Usage
 
-1. **Open Multiple Tabs or Devices**:
+1. **Open multiple tabs in the same browser or different browsers.**:
    - You can open the same URL (`http://localhost:3000`) in multiple tabs or on different devices to test the collaborative features.
 
 2. **Start Editing**:

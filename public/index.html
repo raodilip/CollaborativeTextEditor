@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Text Editor</title>
+    <style>
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-size: 16px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .locked {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Collaborative Text Editor</h1>
+<textarea id="text-area" placeholder="Start typing..."></textarea>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    //This creates a WebSocket connection to the server using Socket.IO. 
+    //The connection enables real-time communication between the client and server
+    const socket = io();
+    const textArea = document.getElementById('text-area');
+    let isOwner = false;
+
+    // Initialize the document state when the user connects
+    //When a new client connects, the server sends the current document state (content and whether it is locked)
+    socket.on('init', (state) => {
+        textArea.value = state.content;
+        if (state.lockedBy) {
+            textArea.classList.add('locked');
+            textArea.disabled = true;
+        }
+    });
+
+    // Lock the text area when the current user clicks on it
+    textArea.addEventListener('focus', () => {
+        if (!textArea.disabled) {
+            //The client tells the server that it wants to lock the document. 
+            //This request is sent via WebSocket to ensure no other users can edit the document until it's unlocked.
+            socket.emit('lock');
+            isOwner = true;
+        }
+    });
+
+    // Unlock the text area when the current user unfocuses from it
+    textArea.addEventListener('blur', () => {
+        if (isOwner) {
+            socket.emit('unlock');
+            isOwner = false;
+        }
+    });
+
+    // Send text updates to the server
+    textArea.addEventListener('input', () => {//Whenever the user types in the text area, this event triggers
+        if (isOwner) {
+            socket.emit('update', textArea.value);
+        }
+    });
+
+    // Update the text area content from other users
+    //This listens for updates from the server. 
+    socket.on('update', (content) => {
+        textArea.value = content;
+    });
+
+    // Handle document lock/unlock
+    socket.on('lock', (data) => {
+        //When another user locks the document, the server informs all clients (except the locking user) about the lock.
+        //If the current user is not the owner (!isOwner), 
+        //the text area is disabled and visually marked as locked (gray background)
+        if (!isOwner) {
+            textArea.classList.add('locked');
+            textArea.disabled = true;
+        }
+    });
+
+    //When the locking user unlocks the document, the server notifies all clients. 
+    //The text area is enabled again and the "locked" class is removed.
+    socket.on('unlock', () => {
+        textArea.classList.remove('locked');
+        textArea.disabled = false;
+    });
+</script>
+
+</body>
+</html>

@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collaborative Text Editor</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        h2 {
+            color: #666;
+        }
+
         textarea {
             width: 100%;
             height: 300px;
@@ -16,11 +31,54 @@
         .locked {
             background-color: #f0f0f0;
         }
+        
+        .avatar-container {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e8f0fe;
+            border: 1px solid #b0c4de;
+            border-radius: 8px;
+        }
+
+        .user-avatar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .user-avatar img {
+            border-radius: 50%;
+            margin-right: 10px;
+            width: 40px;
+            height: 40px;
+        }
+
+        .editor-info {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5; /* Light gray for contrast */
+            border: 1px solid #ccc; /* Border for distinction */
+            border-radius: 8px; /* Rounded corners */
+            display: none;
+        }
+
+        .editor-info.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
 
 <h1>Collaborative Text Editor</h1>
+
+<div id="avatar-container" class="avatar-container">
+    <!-- User avatar will be displayed here -->
+    <h2>Connected Users</h2>
+</div>
+<div id="editor-info" class="editor-info">
+    <span id="editor-avatar"></span>
+    <span id="editor-name"></span>
+</div>
 <textarea id="text-area" placeholder="Start typing..."></textarea>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -29,16 +87,62 @@
     //The connection enables real-time communication between the client and server
     const socket = io();
     const textArea = document.getElementById('text-area');
+    const avatarContainer = document.getElementById('avatar-container');
+    const editorInfo = document.getElementById('editor-info');
+    const editorAvatar = document.getElementById('editor-avatar');
     let isOwner = false;
+
+    // Function to generate a random avatar using a third-party API (e.g., robohash.org)
+    function generateAvatar(userId) {
+        return `https://robohash.org/${userId}.png?size=50x50`;
+    }
 
     // Initialize the document state when the user connects
     //When a new client connects, the server sends the current document state (content and whether it is locked)
     socket.on('init', (state) => {
         textArea.value = state.content;
+        // Display current users' avatars
+        if (state.users) {
+            state.users.forEach(user => {
+                addUserAvatar(user.id, user.avatar);
+            });
+        }
         if (state.lockedBy) {
             textArea.classList.add('locked');
             textArea.disabled = true;
+
+            // Set the editor info to show who is editing
+            showEditorInfo(state.lockedBy, state.lockedByAvatar);
         }
+    });
+
+     // Display the avatar for the current user
+     function addUserAvatar(userId, avatarUrl) {
+        if (document.getElementById(`user-${userId}`)) return;
+        const userAvatar = document.createElement('div');
+        userAvatar.classList.add('user-avatar');
+        userAvatar.id = `user-${userId}`;
+
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+
+        const text = document.createElement('span');
+        text.innerText = `User ${userId}`;
+
+        userAvatar.appendChild(img);
+        userAvatar.appendChild(text);
+        avatarContainer.appendChild(userAvatar);
+    }
+
+        function showEditorInfo(userId, avatarUrl) {
+            editorInfo.classList.add('active');
+            editorAvatar.innerHTML = `<img src="${avatarUrl}" alt="avatar">`;
+            document.getElementById('editor-name').innerText = `${userId} is editing...`;
+        }
+
+    // When a new user connects, add their avatar
+    socket.on('user-connected', (data) => {
+        addUserAvatar(data.userId, data.avatar);
     });
 
     // Lock the text area when the current user clicks on it
@@ -80,6 +184,9 @@
         if (!isOwner) {
             textArea.classList.add('locked');
             textArea.disabled = true;
+
+            // Show who is editing
+            showEditorInfo(data.userId, data.avatar);
         }
     });
 
@@ -88,6 +195,18 @@
     socket.on('unlock', () => {
         textArea.classList.remove('locked');
         textArea.disabled = false;
+
+        // Hide the editor info
+        editorInfo.classList.remove('active');
+        editorAvatar.innerHTML = '';
+    });
+
+     // When a user disconnects, remove their avatar
+     socket.on('user-disconnected', (userId) => {
+        const userAvatar = document.getElementById(`user-${userId}`);
+        if (userAvatar) {
+            userAvatar.remove();
+        }
     });
 </script>
 

@@ -9,7 +9,8 @@ const io = new Server(server);// Attach Socket.IO to the server
 
 let documentState = {
     content: '',
-    lockedBy: null
+    lockedBy: null,
+    users: [] // Store connected users with their avatar information
 };
 app.use(express.static('public'));// Serve static files from the 'public' directory
 
@@ -17,8 +18,21 @@ app.use(express.static('public'));// Serve static files from the 'public' direct
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);// Log when a user connects
 
+    // Generate a random avatar for this user
+    const avatarUrl = `https://robohash.org/${socket.id}.png?size=50x50`;
+    const user = { id: socket.id, avatar: avatarUrl };
+    documentState.users.push(user);
+
     // Send the current document state to the new user
-    socket.emit('init', documentState);//socket.emit Emits a message to only the connected client (sender):
+    socket.emit('init', {
+        content: documentState.content,
+        lockedBy: documentState.lockedBy,
+        lockedByAvatar: documentState.lockedBy ? `https://robohash.org/${documentState.lockedBy}.png?size=50x50` : null,
+        users: documentState.users // Send the full list of users with avatars
+    });//socket.emit Emits a message to only the connected client (sender):
+
+    // Broadcast the new user to all other clients
+    socket.broadcast.emit('user-connected', { userId: socket.id, avatar: avatarUrl });
 
     // Handle locking the document
     //This listens for a "lock" event from the client. 
@@ -28,7 +42,7 @@ io.on('connection', (socket) => {
             documentState.lockedBy = socket.id;
             //This broadcasts a "lock" event to all other clients, 
             //letting them know that the document is now locked by a specific user. 
-            io.emit('lock', { userId: socket.id }); // io.emit sends a message to all connected clients, including the one that triggered the event.
+            io.emit('lock', { userId: socket.id , avatar: `https://robohash.org/${socket.id}.png?size=50x50`}); // io.emit sends a message to all connected clients, including the one that triggered the event.
         }
     });
 
@@ -61,6 +75,10 @@ io.on('connection', (socket) => {
             documentState.lockedBy = null;
             io.emit('unlock');// io.emit sends a message to all connected clients, including the one that triggered the event.
         }
+
+        // Remove the user from the list and notify other clients
+        documentState.users = documentState.users.filter(user => user.id !== socket.id);
+        io.emit('user-disconnected', socket.id);
         console.log(`User disconnected: ${socket.id}`);
     });
 });

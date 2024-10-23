@@ -38,7 +38,7 @@ This project is a real-time collaborative text editor that allows multiple users
 2. Navigate to the project directory:
 
    ```bash
-   cd CollobTextEditor
+   cd CollaborativeTextEditor
     ```
 
 3. Install the required dependencies:
@@ -57,7 +57,7 @@ Open your web browser and navigate to http://localhost:3000 to access the collab
 ## Usage
 
 1. **Open multiple tabs in the same browser or different browsers.**:
-   - You can open the same URL (`http://localhost:3000`) in multiple tabs or on different devices to test the collaborative features.
+   - You can open the same URL (`http://localhost:3000`) in multiple tabs or across different browsers to test the collaborative features.
 
 2. **Start Editing**:
    - Click inside the text area to start typing. The text area will lock for other users once you begin editing.

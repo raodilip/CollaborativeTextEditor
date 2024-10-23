@@ -1,4 +1,22 @@
+# Node modules
+node_modules/
+
 # Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+
+# Build output
+dist/
+build/
+
+# Dependency directories
+jspm_packages/
+
+.DS_Store# Logs
 logs
 *.log
 npm-debug.log*
